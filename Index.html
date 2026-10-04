@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resultados Eleições 2026 🗳️</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--tx:#e2e8f0;--mu:#94a3b8;--ac:#22c55e;--bd:#334155}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;background:#020617;border-bottom:2px solid var(--ac)}
+h1{margin:0;font-size:1.2rem}small,.mu{color:var(--mu)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px}
+select,input,button{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px;font-size:.95rem}
+button{cursor:pointer;background:var(--ac);color:#04210f;font-weight:700;border:0}
+.wrap{padding:0 16px 24px;max-width:900px;margin:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0 14px}
+.st{background:var(--card);border-radius:10px;padding:10px}.st b{display:block;font-size:1.15rem}
+.c{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:4px solid var(--bd)}
+.c.e{border-left-color:var(--ac)}.top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.nm{font-weight:700}.tag{font-size:.72rem;background:var(--ac);color:#04210f;border-radius:6px;padding:2px 6px;margin-left:6px}
+.pb{height:8px;background:#0f172a;border-radius:6px;margin-top:6px;overflow:hidden}.pb i{display:block;height:100%;background:var(--ac)}
+.li{display:inline-flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:.85rem;background:#0a66c2;border-radius:8px;padding:7px 10px;white-space:nowrap}.li svg{width:18px;height:18px;fill:#fff}
+.tabs{display:flex;gap:8px;padding:0 16px}.tabs button{background:var(--card);color:var(--tx);border:1px solid var(--bd)}.tabs button.on{background:var(--ac);color:#04210f}.ld{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:8px}.ld .r{display:flex;justify-content:space-between;gap:8px;padding:3px 0}.ld h3{margin:0 0 4px;font-size:1rem}.pt{color:var(--ac);font-weight:700}
+#msg{padding:10px 16px;color:#fbbf24}details{margin:6px 16px;color:var(--mu)}
+</style>
+</head>
+<body>
+<header><div><h1>🗳️ Resultados Eleições 2026 — Brasil</h1><small>Dados oficiais do TSE · atualiza sozinho a cada 60 s</small></div><a class="li" href="https://www.linkedin.com/in/marcellsouza" target="_blank" rel="noopener" title="LinkedIn de Marcell Souza"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>LinkedIn</a></header>
+<div class="bar">
+<select id="cargo">
+<option value="1">Presidente</option><option value="3">Governador</option><option value="5">Senador</option>
+<option value="6">Deputado Federal</option><option value="7">Deputado Estadual</option><option value="8">Deputado Distrital</option>
+</select>
+<select id="uf"></select>
+<input id="q" placeholder="Buscar candidato/partido/nº" style="flex:1;min-width:160px">
+<button id="go">Atualizar</button>
+</div>
+<div class="tabs"><button id="tC" class="on">Candidatos</button><button id="tL">🏆 1º e 2º lugar</button><button id="tE">📊 Estados %</button><button id="tG">🗂️ Por cargo</button></div>
+<details><summary>Configurações avançadas</summary>
+<div class="bar" style="padding:8px 0">
+<input id="ciclo" value="ele2026" size="8" title="Ciclo"><input id="elf" value="6257" size="8" title="Eleição federal (Presidente)"><input id="ele" value="6259" size="8" title="Eleição estadual (Gov/Sen/Dep)">
+<input id="proxy" placeholder="Proxy CORS (opcional) ex.: https://meuproxy/?u=" size="34">
+</div></details>
+<div id="msg"></div>
+<div class="wrap"><div class="stats" id="stats"></div><div id="list"></div><div id="leaders" style="display:none"></div><div id="states" style="display:none"></div><div id="cargos" style="display:none"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const UFS=["br","ac","al","ap","am","ba","ce","df","es","go","ma","mt","ms","mg","pa","pb","pr","pe","pi","rj","rn","rs","ro","rr","sc","sp","se","to"];
+$("uf").innerHTML=UFS.map(u=>`<option value="${u}">${u==="br"?"Brasil":u.toUpperCase()}</option>`).join("");
+const BASE="https://resultados.tse.jus.br/oficial";
+let data=null,timer=null;
+const num=v=>{const n=parseFloat(String(v??"0").replace(/\./g,"").replace(",","."));return isNaN(n)?0:n};
+const fmt=n=>n.toLocaleString("pt-BR");
+const url=u=>($("proxy").value.trim()||"")+u;
+async function getJson(u){const r=await fetch(url(u),{cache:"no-store"});if(!r.ok)throw new Error(r.status+" em "+u);return r.json()}
+try{const s=JSON.parse(localStorage.getItem("eleicoes2")||"{}");for(const k of["ciclo","elf","ele","proxy"])if(s[k])$(k).value=s[k];if(s.cargo)$("cargo").value=s.cargo;if(s.uf)$("uf").value=s.uf}catch(e){}
+let blocked=false,mode="C";
+function setMode(m){mode=m;for(const[k,id]of[["C","tC"],["L","tL"],["E","tE"],["G","tG"]])$(id).classList.toggle("on",m===k);$("stats").style.display=$("list").style.display=m==="C"?"":"none";$("leaders").style.display=m==="L"?"":"none";$("states").style.display=m==="E"?"":"none";$("cargos").style.display=m==="G"?"":"none";$("q").style.display=(m==="C"||m==="G")?"":"none";blocked=false;load();auto()}
+$("tG").onclick=()=>setMode("G");
+let byCargo=[];
+async function loadByCargo(){
+  const uf=$("uf").value,list=[["Presidente","1","br",$("elf").value],["Governador","3",uf,$("ele").value],["Senador","5",uf,$("ele").value],["Deputado Federal","6",uf,$("ele").value],["Deputado Estadual","7",uf,$("ele").value]];
+  $("msg").textContent="Carregando candidatos de todos os cargos…";byCargo=[];
+  for(const[nome,c,u,e0]of list){
+    const e=e0.trim(),cg=("0000"+c).slice(-4),el=("000000"+e).slice(-6);
+    if(u==="br"&&c!=="1"){byCargo.push({nome,nota:"Escolha um estado no filtro acima."});continue}
+    try{
+      const r=await fetch(url(`${BASE}/${$("ciclo").value}/${e}/dados/${u}/${u}-c${cg}-e${el}-u.json`),{cache:"no-store"});
+      if(r.status===404){byCargo.push({nome,nota:"Sem dados ainda (404)."});continue}
+      if(!r.ok){byCargo.push({nome,nota:"Erro HTTP "+r.status});continue}
+      byCargo.push({nome,cands:collect(await r.json(),[],new Set(),"").sort((a,b)=>num(b.vap)-num(a.vap))});
+      renderG();
+    }catch(err){$("msg").innerHTML="⚠️ "+err.message+"<br><small>Possível bloqueio de CORS; use o proxy nas configurações.</small>";return}
+    await new Promise(r=>setTimeout(r,150));
+  }
+  $("msg").textContent="";renderG();
+}
+function renderG(){
+  const q=$("q").value.toLowerCase();
+  $("cargos").innerHTML=byCargo.map(g=>{
+    if(!g.cands)return `<div class="ld"><h3>${g.nome}</h3><span class="mu">${g.nota}</span></div>`;
+    let l=g.cands.map((c,i)=>[c,i+1]).filter(([c])=>!q||JSON.stringify(c).toLowerCase().includes(q));const t=l.length;if(!q)l=l.slice(0,100);
+    return `<div class="ld"><h3>${g.nome} <small>(${g.cands.length})</small></h3>${l.map(([c,i])=>`<div class="r"><span>${i}º <b>${c.nmu||c.nm||"?"}</b> <span class="pt">${c._p||""}</span> ${String(c.e||"").toLowerCase()==="s"?'<span class="tag">ELEITO</span>':""}</span><span style="text-align:right">${c.pvap||"0"}% <small>· ${fmt(num(c.vap))}</small></span></div>`).join("")||'<span class="mu">Nenhum resultado.</span>'}${t>l.length?`<small class="mu">Mostrando ${l.length} de ${t}. Use a busca.</small>`:""}</div>`}).join("");
+}
+$("tE").onclick=()=>setMode("E");
+async function loadStates(){
+  const c=$("cargo").value,e=(c==="1"?$("elf"):$("ele")).value.trim(),cg=("0000"+c).slice(-4),el=("000000"+e).slice(-6),out=[];let miss=0;
+  $("msg").textContent="Carregando porcentagens dos estados…";
+  for(const uf of UFS.filter(x=>x!=="br")){
+    if(c==="8"&&uf!=="df")continue;
+    try{
+      const r=await fetch(url(`${BASE}/${$("ciclo").value}/${e}/dados/${uf}/${uf}-c${cg}-e${el}-u.json`),{cache:"no-store"});
+      if(r.status===404){if(++miss>=3&&!out.length)break;continue}
+      if(!r.ok)continue;miss=0;
+      const d=await r.json(),pst=num(pick(d,"pst")),t=top2(d)[0];
+      out.push(`<div class="ld"><div class="r"><b>${uf.toUpperCase()}</b><span>${pst.toLocaleString("pt-BR")}% apurado</span></div><div class="pb"><i style="width:${pst}%"></i></div>${t?`<div class="r"><small>Líder: <b>${t.nmu||t.nm}</b> <span class="pt">${t._p||""}</span></small><small>${t.pvap||"0"}%</small></div>`:""}</div>`);
+      $("states").innerHTML=out.join("");
+    }catch(err){$("msg").innerHTML="⚠️ "+err.message+"<br><small>Possível bloqueio de CORS; use o proxy nas configurações.</small>";return}
+    await new Promise(r=>setTimeout(r,150));
+  }
+  $("msg").textContent=out.length?"":"⚠️ Arquivos ainda não disponíveis (404) para este cargo. Tente novamente em alguns minutos.";
+}
+$("tC").onclick=()=>setMode("C");$("tL").onclick=()=>setMode("L");
+async function loadLeaders(){
+  const c=$("cargo").value,e=$("ele").value.trim(),cg=("0000"+c).slice(-4),el=("000000"+e).slice(-6),out=[];let miss=0;
+  $("msg").textContent="Carregando líderes de todos os estados…";
+  for(const uf of UFS.filter(x=>x!=="br")){
+    if(c==="8"&&uf!=="df")continue;
+    try{
+      const r=await fetch(url(`${BASE}/${$("ciclo").value}/${e}/dados/${uf}/${uf}-c${cg}-e${el}-u.json`),{cache:"no-store"});
+      if(r.status===404){if(++miss>=3&&!out.length)break;continue}
+      if(!r.ok)continue;miss=0;
+      const t=top2(await r.json());out.push(`<div class="ld"><h3>${uf.toUpperCase()}</h3>${t.map(row).join("")||"<span class=mu>Sem votos ainda</span>"}</div>`);
+      $("leaders").innerHTML=out.join("");
+    }catch(err){$("msg").innerHTML="⚠️ "+err.message+"<br><small>Possível bloqueio de CORS; use o proxy nas configurações.</small>";return}
+    await new Promise(r=>setTimeout(r,150));
+  }
+  $("msg").textContent=out.length?"":"⚠️ Arquivos ainda não disponíveis (404) para este cargo. Tente novamente em alguns minutos.";
+}
+async function load(){
+  if(blocked)return;
+  if(mode==="E")return loadStates();
+  if(mode==="G")return loadByCargo();
+  if(mode==="L"&&$("cargo").value!=="1")return loadLeaders();
+  $("msg").textContent="Carregando…";
+  const c=$("cargo").value,uf=$("uf").value;
+  const e=c==="1"?$("elf").value.trim():$("ele").value.trim();
+  const cg=("0000"+c).slice(-4),el=("000000"+e).slice(-6);
+  const u=`${BASE}/${$("ciclo").value}/${e}/dados/${uf}/${uf}-c${cg}-e${el}-u.json`;
+  try{
+    const r=await fetch(url(u),{cache:"no-store"});
+    if(r.status===404){$("msg").innerHTML=`⚠️ Arquivo ainda não existe (404) para este cargo/UF:<br><small>${u}<br>Pode não ter sido gerado ainda, ou o cargo não existe nessa UF (Presidente = Brasil; Deputado Distrital = DF). Não vou insistir automaticamente para evitar bloqueio de IP pelo TSE — troque a seleção ou clique em Atualizar.</small>`;clearInterval(timer);return}
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    data=await r.json();
+    localStorage.setItem("eleicoes2",JSON.stringify({ciclo:$("ciclo").value,elf:$("elf").value,ele:$("ele").value,proxy:$("proxy").value,cargo:c,uf}));
+    $("msg").textContent="";render();
+  }catch(err){
+    $("msg").innerHTML="⚠️ "+err.message+"<br><small>Se for bloqueio de CORS, use um proxy em Configurações avançadas ou acompanhe em resultados.tse.jus.br/oficial/app/index.html</small>";clearInterval(timer);
+  }
+}
+function collect(o,out,seen,pt){
+  if(Array.isArray(o))o.forEach(x=>collect(x,out,seen,pt));
+  else if(o&&typeof o==="object"){
+    if(o.sg&&Array.isArray(o.cand))pt=o.sg;
+    if(o.vap!==undefined&&(o.nm||o.n||o.nmu)){const k=o.sqcand||o.n+"|"+o.nm;if(!seen.has(k)){seen.add(k);o._p=o.sg||pt||"";out.push(o)}}
+    Object.values(o).forEach(x=>collect(x,out,seen,pt))}
+  return out}
+function pick(o,k){let r;(function w(x,d){if(r!==undefined||d>3||!x||typeof x!=="object")return;if(!Array.isArray(x)&&x[k]!==undefined&&typeof x[k]!=="object"){r=x[k];return}Object.values(x).forEach(y=>w(y,d+1))})(o,0);return r}
+function top2(d){return collect(d,[],new Set(),"").sort((a,b)=>num(b.vap)-num(a.vap)).slice(0,2)}
+const row=(c,i)=>`<div class="r"><span>${i+1}º <b>${c.nmu||c.nm||"?"}</b> <span class="pt">${c._p||c.cc||""}</span> <small>${c.n||""}</small></span><span>${c.pvap||"0"}%</span></div>`;
+function render(){
+  if(mode==="G")return renderG();
+  if(!data)return;
+  if(mode==="L"){const t=top2(data);$("leaders").innerHTML=`<div class="ld"><h3>${$("uf").selectedOptions[0].text}</h3>${t.map(row).join("")||"<span class=mu>Sem votos ainda</span>"}</div>`;return}
+  const q=$("q").value.toLowerCase();
+  const cands=collect(data,[],new Set(),"").sort((a,b)=>num(b.vap)-num(a.vap));
+  const P=k=>pick(data,k);
+  const box=[["Seções totalizadas",P("pst")!=null?P("pst")+"%":"—"],["Votos válidos",fmt(num(P("vv")))+" ("+(P("pvv")||"0")+"%)"],["Brancos",fmt(num(P("vb")))+" ("+(P("pvb")||"0")+"%)"],["Nulos",fmt(num(P("tvn")))+" ("+(P("ptvn")||"0")+"%)"],["Abstenções",fmt(num(P("a")))+" ("+(P("pa")||"0")+"%)"],["Comparecimento",fmt(num(P("c")))+" ("+(P("pc")||"0")+"%)"],["Atualizado",(P("ht")||P("hg")||"—")]];
+  $("stats").innerHTML=box.map(([k,v])=>`<div class="st"><small>${k}</small><b>${v}</b></div>`).join("");
+  const max=Math.max(1,...cands.map(c=>num(c.pvap)));
+  let list=cands.filter(c=>!q||JSON.stringify(c).toLowerCase().includes(q));
+  const total=list.length;if(!q)list=list.slice(0,300);
+  $("list").innerHTML=list.map((c,i)=>{
+    const el=String(c.e||"").toLowerCase()==="s",p=num(c.pvap);
+    return `<div class="c ${el?"e":""}"><div class="top"><span><span class="mu">${i+1}º</span> <span class="nm">${c.nmu||c.nm||"?"}</span> <span class="pt">${c._p||c.sg||""}</span>${el?'<span class="tag">ELEITO</span>':""}${c.dvt&&!el?`<span class="tag" style="background:#fbbf24">${c.dvt}</span>`:""}<br><small>Nº ${c.n||""} ${c.cc&&c.cc!==c._p?"· "+c.cc:""}</small></span><span style="text-align:right"><b>${c.pvap||"0"}%</b><br><small>${fmt(num(c.vap))} votos</small></span></div><div class="pb"><i style="width:${p/max*100}%"></i></div></div>`}).join("")||'<p class="mu">Nenhum candidato encontrado (a lista pode estar zerada no início da apuração).</p>';
+  if(total>list.length)$("list").innerHTML+=`<p class="mu">Mostrando 300 de ${total}. Use a busca para achar os demais.</p>`;
+}
+function auto(){clearInterval(timer);timer=setInterval(load,60000)}
+$("go").onclick=()=>{blocked=false;load();auto()};$("q").oninput=render;
+$("uf").onchange=()=>{load();auto()};
+$("cargo").onchange=()=>{if($("cargo").value==="1")$("uf").value="br";else if($("uf").value==="br")$("uf").value="sp";load();auto()};
+load();auto();
+</script>
+</body>
+</html>
